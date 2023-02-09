@@ -1,0 +1,37 @@
+plugins {
+    // Apply the application plugin to add support for building a CLI application in Java.
+    id 'application'
+}
+
+repositories {
+    // Use Maven Central for resolving dependencies.
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform('software.amazon.awssdk:bom:2.19.33')
+    implementation 'software.amazon.awssdk:secretsmanager'
+
+    implementation 'info.picocli:picocli:4.7.1'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.1'
+    
+    // Use JUnit Jupiter for testing.
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.1'
+
+    // This dependency is used by the application.
+    implementation 'com.google.guava:guava:31.1-jre'
+}
+
+compileJava {
+    options.compilerArgs += ["-Aproject=${project.group}/${project.name}"]
+}
+
+application {
+    // Define the main class for the application.
+    mainClass = 'aws.sm.migrator.AwsSMMigrator'
+}
+
+tasks.named('test') {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
+}
