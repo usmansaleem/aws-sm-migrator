@@ -1,0 +1,6 @@
+aws/
+.idea/
+
+Dockerfile
+gradlew.bat
+docker-compose.yaml

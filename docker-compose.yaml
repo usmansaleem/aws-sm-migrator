@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # see https://docs.localstack.cloud/get-started/#docker-compose
+  # see https://docs.localstack.cloud/localstack/configuration/
+  secrets-manager:
+    container_name: secrets-manager
+    image: localstack/localstack
+    ports:
+      - 4566:4566
+    environment:
+      # Secrets configuration
+      - NUM_SECRETS=${NUM_SECRETS:-15}
+      - SECRET_PREFIX=${SECRET_PREFIX:-test/}
+      # AWS configuration
+      - AWS_DEFAULT_REGION=${AWS_REGION:-us-east-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-ASIA...}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-IOP33...}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-Xddss...}
+      # Localstack configuration
+      - EDGE_PORT=4566
+      - SERVICES=secretsmanager
+      - EAGER_SERVICE_LOADING=true
+    volumes:
+      - /tmp/localstack:/var/lib/localstack
+      - ./aws:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD", "awslocal", "secretsmanager", "list-secrets"]
+      start_period: 60s
+      interval: 30s
+  aws-migrator:
+    image: aws-migrator
+    build:
+      context: .
+    restart: on-failure
+    depends_on:
+      - secrets-manager
+    environment:
+      # AWS configuration
+      - AWS_REGION=${AWS_REGION:-us-east-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-ASIA...}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-IOP33...}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-Xddss...}
+    command: -e "http://secrets-manager:4566" -s "${SECRET_PREFIX:-test/}" -t "target-prefix/" -p 5

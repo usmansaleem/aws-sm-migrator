@@ -25,12 +25,20 @@ public class AwsSMMigrator implements Callable<Integer> {
     @Option(names = {"-d", "--dry-run"}, description = "Dry run only.")
     private boolean dryRun = false;
 
+    @Option(names = {"-e","--endpoint-url"}, paramLabel = "http://localhost:4566",
+            description = "AWS endpoint url override.")
+    private String awsEndpointUrlOverride;
+
+    @Option(names = {"-p","--partition-size"}, paramLabel = "200",
+            description = "Size of partitions for migration. Maximum is 200.",
+            defaultValue = "200")
+    private String partitionSize;
 
     @Override
     public Integer call() {
-        try(final AwsSecretsManager awsSecretsManager = new AwsSecretsManager(dryRun)) {
+        try(final AwsSecretsManager awsSecretsManager = new AwsSecretsManager(dryRun, awsEndpointUrlOverride)) {
             final List<String> secretsList = awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
-            awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList);
+            awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList, partitionSize);
         } catch (Exception e) {
             System.err.println("Error encountered: " + e.getMessage());
             e.printStackTrace();

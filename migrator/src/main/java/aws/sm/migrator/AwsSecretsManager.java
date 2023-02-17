@@ -14,10 +14,13 @@ import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
 import software.amazon.awssdk.services.secretsmanager.paginators.ListSecretsIterable;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class AwsSecretsManager implements AutoCloseable {
@@ -25,8 +28,9 @@ public class AwsSecretsManager implements AutoCloseable {
     private static final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
     private final SecretsManagerClient secretsClient;
     private final boolean dryRun;
-    public AwsSecretsManager(final boolean dryRun) {
-        this.secretsClient =  getSecretsManagerClient();
+    private final Integer maxPartitionSize = 200;
+    public AwsSecretsManager(final boolean dryRun, final String endpointUrlOverride) {
+        this.secretsClient =  getSecretsManagerClient(Optional.ofNullable(endpointUrlOverride));
         this.dryRun = dryRun;
     }
 
@@ -56,8 +60,20 @@ public class AwsSecretsManager implements AutoCloseable {
         return secretValues;
     }
 
-    public void transformSecrets(final String targetPrefix, final List<String> secretValues) {
-        List<List<String>> partitionedLists = Lists.partition(secretValues, 200);
+    private Integer getPartitionSize(String partitionSize) {
+        try {
+            Integer partitionSizeRet = Integer.parseInt(partitionSize);
+            if(partitionSizeRet < maxPartitionSize) return partitionSizeRet;
+        } catch (NumberFormatException e) {
+            System.err.println("Error encountered: " + e.getMessage());
+        }
+        return maxPartitionSize;
+    }
+
+    public void transformSecrets(final String targetPrefix, final List<String> secretValues, final String partitionSize) {
+        Integer pSize = getPartitionSize(partitionSize);
+        System.out.printf("Partition size %d%n", pSize);
+        List<List<String>> partitionedLists = Lists.partition(secretValues, getPartitionSize(partitionSize));
         for (List<String> secretsList : partitionedLists) {
             String combinedSecrets = secretsList.stream().collect(Collectors.joining(System.lineSeparator()));
 
@@ -86,7 +102,28 @@ public class AwsSecretsManager implements AutoCloseable {
         return valueResponse.secretString();
     }
 
-    private static SecretsManagerClient getSecretsManagerClient() {
+    private static Optional<URI> getEndpointURIOverride(String endpointUrlOverride) {
+        URI endpointUriOverride = null;
+        try {
+            endpointUriOverride = new URI(endpointUrlOverride);
+        } catch (URISyntaxException e) {
+            System.err.println("Error encountered: " + e.getMessage());
+        }
+        return Optional.ofNullable(endpointUriOverride);
+    }
+
+    private static SecretsManagerClient getSecretsManagerClient(Optional<String> endpointUrlOverride) {
+        if(endpointUrlOverride.isPresent()) {
+            Optional<URI> endpointUriOverride = getEndpointURIOverride(endpointUrlOverride.get());
+            if (endpointUriOverride.isPresent()) {
+                System.out.printf("Overriding AWS endpoint url %s%n", endpointUrlOverride.get());
+                return SecretsManagerClient.builder()
+                        .credentialsProvider(DefaultCredentialsProvider.create())
+                        .region(DefaultAwsRegionProviderChain.builder().build().getRegion())
+                        .endpointOverride(endpointUriOverride.get())
+                        .build();
+            }
+        }
         return SecretsManagerClient.builder()
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .region(DefaultAwsRegionProviderChain.builder().build().getRegion())
