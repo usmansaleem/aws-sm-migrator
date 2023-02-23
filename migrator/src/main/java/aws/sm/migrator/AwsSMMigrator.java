@@ -8,7 +8,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @Command(name = "AWSSMMigrator", mixinStandardHelpOptions = true, version = "1.0",
@@ -25,10 +24,14 @@ public class AwsSMMigrator implements Callable<Integer> {
     @Option(names = {"-d", "--dry-run"}, description = "Dry run only.")
     private boolean dryRun = false;
 
+    @Option(names = {"-e","--aws-endpoint-override-uri"}, paramLabel = "<URI>",
+            description = "Override AWS endpoint. Useful for integration testing with localstack.")
+    private java.net.URI awsEndpointUrl;
+
 
     @Override
     public Integer call() {
-        try(final AwsSecretsManager awsSecretsManager = new AwsSecretsManager(dryRun)) {
+        try(final AwsSecretsManager awsSecretsManager = new AwsSecretsManager(dryRun, awsEndpointUrl)) {
             final List<String> secretsList = awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
             awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList);
         } catch (Exception e) {
@@ -38,7 +41,6 @@ public class AwsSMMigrator implements Callable<Integer> {
         }
         return 0;
     }
-
 
 
     public static void main(String[] args) {

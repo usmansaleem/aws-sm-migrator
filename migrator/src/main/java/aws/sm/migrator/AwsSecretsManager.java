@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
 import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.Filter;
 import software.amazon.awssdk.services.secretsmanager.model.FilterNameStringType;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
 import software.amazon.awssdk.services.secretsmanager.paginators.ListSecretsIterable;
 
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -25,9 +27,11 @@ public class AwsSecretsManager implements AutoCloseable {
     private static final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
     private final SecretsManagerClient secretsClient;
     private final boolean dryRun;
-    public AwsSecretsManager(final boolean dryRun) {
-        this.secretsClient =  getSecretsManagerClient();
+
+    public AwsSecretsManager(final boolean dryRun, URI awsEndpointUrl) {
+        this.secretsClient =  getSecretsManagerClient(awsEndpointUrl);
         this.dryRun = dryRun;
+
     }
 
     public List<String> getAllSecretsForPrefix(String prefix) {
@@ -86,11 +90,14 @@ public class AwsSecretsManager implements AutoCloseable {
         return valueResponse.secretString();
     }
 
-    private static SecretsManagerClient getSecretsManagerClient() {
-        return SecretsManagerClient.builder()
+    private static SecretsManagerClient getSecretsManagerClient(final URI awsEndpointUrl) {
+        SecretsManagerClientBuilder builder = SecretsManagerClient.builder()
                 .credentialsProvider(DefaultCredentialsProvider.create())
-                .region(DefaultAwsRegionProviderChain.builder().build().getRegion())
-                .build();
+                .region(DefaultAwsRegionProviderChain.builder().build().getRegion());
+        if (awsEndpointUrl != null) {
+            builder.endpointOverride(awsEndpointUrl);
+        }
+        return builder.build();
     }
 
     @Override
