@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ParameterException;
+import picocli.CommandLine.Spec;
 
 @Command(
     name = "AWSSMMigrator",
@@ -13,6 +16,7 @@ import picocli.CommandLine.Option;
     version = "1.0",
     description = "Migrates AWS Secret values to line-terminated multi-values.")
 public class AwsSMMigrator implements Callable<Integer> {
+  @Spec CommandSpec spec; // injected by PicoCLI
 
   @Option(
       names = {"-s", "--source-prefix"},
@@ -28,6 +32,8 @@ public class AwsSMMigrator implements Callable<Integer> {
       required = true)
   private String targetSercretNamePrefix;
 
+  private Integer numberOfKeys;
+
   @Option(
       names = {"-d", "--dry-run"},
       description = "Dry run only.")
@@ -39,10 +45,27 @@ public class AwsSMMigrator implements Callable<Integer> {
       description = "Override AWS endpoint. Useful for integration testing with localstack.")
   private java.net.URI awsEndpointUrl;
 
+  @Option(
+      names = {"-n", "--number-of-keys"},
+      paramLabel = "<NUMBER>",
+      description = "Number of keys to store in single secret. Maximum size is 200. Defaults to ${DEFAULT-VALUE}.",
+      defaultValue = "200")
+  public void setNumberOfKeys(int numberOfKeys) {
+    if (numberOfKeys <= 0 || numberOfKeys > 200) {
+      throw new ParameterException(
+          spec.commandLine(),
+          String.format(
+              "Invalid value '%s' for option '--number-of-keys': "
+                  + "value must be between 1 to 200",
+              numberOfKeys));
+    }
+    this.numberOfKeys = numberOfKeys;
+  }
+
   @Override
   public Integer call() {
     try (final AwsSecretsManager awsSecretsManager =
-        new AwsSecretsManager(dryRun, awsEndpointUrl)) {
+        new AwsSecretsManager(dryRun, numberOfKeys, awsEndpointUrl)) {
       final List<String> secretsList =
           awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
       awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList);

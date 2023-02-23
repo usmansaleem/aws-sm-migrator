@@ -27,10 +27,12 @@ public class AwsSecretsManager implements AutoCloseable {
   private static final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
   private final SecretsManagerClient secretsClient;
   private final boolean dryRun;
+  private final int numberOfKeys;
 
-  public AwsSecretsManager(final boolean dryRun, URI awsEndpointUrl) {
+  public AwsSecretsManager(final boolean dryRun, final int numberOfKeys, final URI awsEndpointUrl) {
     this.secretsClient = getSecretsManagerClient(awsEndpointUrl);
     this.dryRun = dryRun;
+    this.numberOfKeys = numberOfKeys;
   }
 
   public List<String> getAllSecretsForPrefix(String prefix) {
@@ -59,7 +61,7 @@ public class AwsSecretsManager implements AutoCloseable {
   }
 
   public void transformSecrets(final String targetPrefix, final List<String> secretValues) {
-    List<List<String>> partitionedLists = Lists.partition(secretValues, 200);
+    List<List<String>> partitionedLists = Lists.partition(secretValues, numberOfKeys);
     for (List<String> secretsList : partitionedLists) {
       String combinedSecrets =
           secretsList.stream().collect(Collectors.joining(System.lineSeparator()));
