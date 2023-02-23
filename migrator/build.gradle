@@ -1,6 +1,7 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     id 'application'
+    id "com.diffplug.spotless" version "6.15.0"
 }
 
 repositories {
@@ -29,6 +30,17 @@ compileJava {
 application {
     // Define the main class for the application.
     mainClass = 'aws.sm.migrator.AwsSMMigrator'
+}
+
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        importOrder()
+        removeUnusedImports()
+        googleJavaFormat()
+        formatAnnotations()
+        licenseHeader '/* Licensed under Apache-2.0 $YEAR. */'
+    }
 }
 
 tasks.named('test') {
