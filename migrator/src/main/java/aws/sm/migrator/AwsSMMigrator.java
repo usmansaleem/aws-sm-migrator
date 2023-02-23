@@ -2,6 +2,7 @@
 package aws.sm.migrator;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -40,6 +41,11 @@ public class AwsSMMigrator implements Callable<Integer> {
   private boolean dryRun = false;
 
   @Option(
+      names = {"--delete-source-secrets"},
+      description = "Delete secrets under source prefix after migration.")
+  private boolean deleteSourcePrefix = false;
+
+  @Option(
       names = {"-e", "--aws-endpoint-override-uri"},
       paramLabel = "<URI>",
       description = "Override AWS endpoint. Useful for integration testing with localstack.")
@@ -48,7 +54,8 @@ public class AwsSMMigrator implements Callable<Integer> {
   @Option(
       names = {"-n", "--number-of-keys"},
       paramLabel = "<NUMBER>",
-      description = "Number of keys to store in single secret. Maximum size is 200. Defaults to ${DEFAULT-VALUE}.",
+      description =
+          "Number of keys to store in single secret. Maximum size is 200. Defaults to ${DEFAULT-VALUE}.",
       defaultValue = "200")
   public void setNumberOfKeys(int numberOfKeys) {
     if (numberOfKeys <= 0 || numberOfKeys > 200) {
@@ -65,11 +72,12 @@ public class AwsSMMigrator implements Callable<Integer> {
   @Override
   public Integer call() {
     try (final AwsSecretsManager awsSecretsManager =
-        new AwsSecretsManager(dryRun, numberOfKeys, awsEndpointUrl)) {
-      final List<String> secretsList =
+        new AwsSecretsManager(dryRun, numberOfKeys, awsEndpointUrl, deleteSourcePrefix)) {
+      final List<Map.Entry<String, String>> secretsList =
           awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
       awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList);
-    } catch (Exception e) {
+      awsSecretsManager.deleteSecrets(secretsList);
+    } catch (final Exception e) {
       System.err.println("Error encountered: " + e.getMessage());
       e.printStackTrace();
       return -1;

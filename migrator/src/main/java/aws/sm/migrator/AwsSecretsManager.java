@@ -5,21 +5,25 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.net.URI;
 import java.security.SecureRandom;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
 import software.amazon.awssdk.services.secretsmanager.model.CreateSecretRequest;
+import software.amazon.awssdk.services.secretsmanager.model.DeleteSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.Filter;
 import software.amazon.awssdk.services.secretsmanager.model.FilterNameStringType;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 import software.amazon.awssdk.services.secretsmanager.paginators.ListSecretsIterable;
 
 public class AwsSecretsManager implements AutoCloseable {
@@ -29,13 +33,20 @@ public class AwsSecretsManager implements AutoCloseable {
   private final boolean dryRun;
   private final int numberOfKeys;
 
-  public AwsSecretsManager(final boolean dryRun, final int numberOfKeys, final URI awsEndpointUrl) {
+  private final boolean deleteSourcePrefix;
+
+  public AwsSecretsManager(
+      final boolean dryRun,
+      final int numberOfKeys,
+      final URI awsEndpointUrl,
+      final boolean deleteSourcePrefix) {
     this.secretsClient = getSecretsManagerClient(awsEndpointUrl);
     this.dryRun = dryRun;
     this.numberOfKeys = numberOfKeys;
+    this.deleteSourcePrefix = deleteSourcePrefix;
   }
 
-  public List<String> getAllSecretsForPrefix(String prefix) {
+  public List<Map.Entry<String, String>> getAllSecretsForPrefix(String prefix) {
     System.out.printf("Fetching secrets under prefix %s%n", prefix);
 
     final List<Filter> filters = new ArrayList<>();
@@ -44,12 +55,12 @@ public class AwsSecretsManager implements AutoCloseable {
     final ListSecretsIterable listSecretsResponses =
         secretsClient.listSecretsPaginator(ListSecretsRequest.builder().filters(filters).build());
 
-    final List<String> secretValues = new ArrayList<>();
+    final List<Map.Entry<String, String>> secretValues = new ArrayList<>();
 
     listSecretsResponses.stream()
         .forEach(
             listSecretsResponse -> {
-              final List<String> values =
+              final List<Map.Entry<String, String>> values =
                   listSecretsResponse.secretList().parallelStream()
                       .map(this::getSecretValue)
                       .toList();
@@ -60,11 +71,15 @@ public class AwsSecretsManager implements AutoCloseable {
     return secretValues;
   }
 
-  public void transformSecrets(final String targetPrefix, final List<String> secretValues) {
-    List<List<String>> partitionedLists = Lists.partition(secretValues, numberOfKeys);
-    for (List<String> secretsList : partitionedLists) {
+  public void transformSecrets(
+      final String targetPrefix, final List<Map.Entry<String, String>> secretValues) {
+    List<List<Map.Entry<String, String>>> partitionedLists =
+        Lists.partition(secretValues, numberOfKeys);
+    for (List<Map.Entry<String, String>> secretsList : partitionedLists) {
       String combinedSecrets =
-          secretsList.stream().collect(Collectors.joining(System.lineSeparator()));
+          secretsList.stream()
+              .map(Map.Entry::getValue)
+              .collect(Collectors.joining(System.lineSeparator()));
 
       // write combinedSecrets
       String secretName = randomString(targetPrefix);
@@ -79,12 +94,32 @@ public class AwsSecretsManager implements AutoCloseable {
     }
   }
 
-  private String getSecretValue(final SecretListEntry secretListEntry) {
+  public void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
+    System.out.println("Deleting source records: " + secretsList.size());
+    secretsList.stream().map(Map.Entry::getKey).forEach(this::deleteSecret);
+    System.out.println("Source records deleted.");
+  }
+
+  private void deleteSecret(final String secretName) {
+    if (dryRun) {
+      return;
+    }
+    try {
+      final DeleteSecretRequest secretRequest =
+          DeleteSecretRequest.builder().secretId(secretName).recoveryWindowInDays(7L).build();
+      secretsClient.deleteSecret(secretRequest);
+    } catch (SecretsManagerException e) {
+      System.err.println(e.awsErrorDetails().errorMessage());
+    }
+  }
+
+  private Map.Entry<String, String> getSecretValue(final SecretListEntry secretListEntry) {
+    final String secretName = secretListEntry.name();
     GetSecretValueRequest valueRequest =
-        GetSecretValueRequest.builder().secretId(secretListEntry.name()).build();
+        GetSecretValueRequest.builder().secretId(secretName).build();
 
     GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
-    return valueResponse.secretString();
+    return new AbstractMap.SimpleEntry<>(secretName, valueResponse.secretString());
   }
 
   private static SecretsManagerClient getSecretsManagerClient(final URI awsEndpointUrl) {
