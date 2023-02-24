@@ -1,7 +1,7 @@
 plugins {
-    // Apply the application plugin to add support for building a CLI application in Java.
     id 'application'
     id "com.diffplug.spotless" version "6.15.0"
+    id 'com.avast.gradle.docker-compose' version "0.16.11"
 }
 
 repositories {
@@ -43,7 +43,21 @@ spotless {
     }
 }
 
-tasks.named('test') {
+dockerCompose.isRequiredBy(test)
+
+dockerCompose.doFirst {
+    println "${project.projectDir}/docker-compose"
+}
+
+dockerCompose {
+    executable = "${project.projectDir}/docker-compose"
+}
+
+test.doFirst {
+    //dockerCompose.exposeAsEnvironment(test)
+}
+
+test {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
