@@ -17,7 +17,7 @@ services:
       # AWS Configuration
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_DEFAULT_REGION=us-east-2
       - AWS_SESSION_TOKEN=test
       # ready hook script configuration
       - NUM_OF_SECRETS=15

@@ -76,7 +76,6 @@ public class AwsSMMigrator implements Callable<Integer> {
       final List<Map.Entry<String, String>> secretsList =
           awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
       awsSecretsManager.transformSecrets(targetSercretNamePrefix, secretsList);
-      awsSecretsManager.deleteSecrets(secretsList);
     } catch (final Exception e) {
       System.err.println("Error encountered: " + e.getMessage());
       e.printStackTrace();
