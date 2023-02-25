@@ -23,7 +23,7 @@ target-prefix/LIvkjZy0RuFRfwQyuCVMrV7o9Oc
 
 ## Docker Build
 ~~~
-docker build -t aws-sm-migrator:latest .
+docker build -t usmans/aws-sm-migrator:1.0 .
 ~~~
 
 ## Usage
@@ -35,12 +35,12 @@ export AWS_SECRET_ACCESS_KEY=Xddss...
 export AWS_SESSION_TOKEN=IOP33...
 export AWS_REGION=us-east-2
 
-docker run --rm -it -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION aws-sm-migrator:latest --help
+docker run --rm -it -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION usmans/aws-sm-migrator:1.0 --help
 ~~~
 
 ## Cli options:
 ~~~
-docker run --rm -it aws-sm-migrator:latest --help
+docker run --rm -it usmans/aws-sm-migrator:1.0 --help
 Usage: AWSSMMigrator [-dhV] [--delete-source-secrets] [-e=<URI>] [-n=<NUMBER>]
                      -s=source-prefix/ -t=target-prefix/
 Migrates AWS Secret values to line-terminated multi-values.
