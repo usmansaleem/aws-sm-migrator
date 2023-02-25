@@ -26,7 +26,7 @@ target-prefix/LIvkjZy0RuFRfwQyuCVMrV7o9Oc
 ./gradlew clean installdist
 ~~~
 
-## Execute
+## Usage
 This program uses AWS [Default Credential Provider](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials.html#credentials-chain).
 Following sample uses Environment variables credentials: 
 ~~~
@@ -36,6 +36,28 @@ export AWS_SESSION_TOKEN=IOP33...
 export AWS_REGION=us-east-2
 
 cd ./migrator/build/install/migrator/bin/
+~~~
+
+Cli options:
+~~~
+Usage: AWSSMMigrator [-dhV] [--delete-source-secrets] [-e=<URI>] [-n=<NUMBER>]
+                     -s=source-prefix/ -t=target-prefix/
+Migrates AWS Secret values to line-terminated multi-values.
+  -d, --dry-run   Dry run only.
+      --delete-source-secrets
+                  Delete secrets under source prefix after migration.
+  -e, --aws-endpoint-override-uri=<URI>
+                  Override AWS endpoint. Useful for integration testing with
+                    localstack.
+  -h, --help      Show this help message and exit.
+  -n, --number-of-keys=<NUMBER>
+                  Number of keys to store in single secret. Maximum size is
+                    200. Defaults to 200.
+  -s, --source-prefix=source-prefix/
+                  Source Secret Name Prefix which contains the secrets.
+  -t, --target-prefix=target-prefix/
+                  Target Secret Name Prefix where to create the secrets.
+  -V, --version   Print version information and exit.
 ~~~
 
 Dry run (does not create target secrets)
