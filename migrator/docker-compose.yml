@@ -12,10 +12,10 @@ services:
       # LocalStack configuration
       - DEBUG=${DEBUG-}
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
-      #- DOCKER_HOST=unix:///var/run/docker.sock
+      - DOCKER_HOST=unix:///var/run/docker.sock
       - SERVICES=secretsmanager
-      - LOCALSTACK_HOSTNAME=localhost
-      - LOCALSTACK_HOSTNAME_EXTERNAL=localhost
+      # - LOCALSTACK_HOSTNAME=localhost
+      # - LOCALSTACK_HOSTNAME_EXTERNAL=localhost
       # AWS Configuration
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
@@ -27,4 +27,4 @@ services:
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-./localstack/volume}:/var/lib/localstack"
       - "./localstack/init/ready.d:/etc/localstack/init/ready.d" # ready hooks
-      #- "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/run/docker.sock:/var/run/docker.sock"
