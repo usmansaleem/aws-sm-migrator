@@ -21,7 +21,7 @@ COPY gradlew settings.gradle /opt/app/
 COPY migrator/ /opt/app/migrator/
 
 WORKDIR /opt/app
-RUN ls -alh . && ./gradlew distTar -x test --no-daemon
+RUN ./gradlew distTar -x test --no-daemon
 
 FROM ubuntu:latest
 ENV JAVA_HOME=/opt/java/openjdk
