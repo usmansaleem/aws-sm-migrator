@@ -14,6 +14,8 @@ services:
       - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
       - DOCKER_HOST=unix:///var/run/docker.sock
       - SERVICES=secretsmanager
+      - HOSTNAME=localhost
+      - HOSTNAME_EXTERNAL=localhost
       # AWS Configuration
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
