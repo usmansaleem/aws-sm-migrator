@@ -53,7 +53,8 @@ public class AwsSecretsManager implements AutoCloseable {
     filters.add(Filter.builder().key(FilterNameStringType.NAME).values(prefix).build());
 
     final ListSecretsIterable listSecretsResponses =
-        secretsClient.listSecretsPaginator(ListSecretsRequest.builder().filters(filters).build());
+        secretsClient.listSecretsPaginator(
+            ListSecretsRequest.builder().includePlannedDeletion(false).filters(filters).build());
 
     final List<Map.Entry<String, String>> secretValues = new ArrayList<>();
 
@@ -82,19 +83,28 @@ public class AwsSecretsManager implements AutoCloseable {
               .collect(Collectors.joining(System.lineSeparator()));
 
       // write combinedSecrets
-      String secretName = randomString(targetPrefix);
-      final CreateSecretRequest secretRequest =
-          CreateSecretRequest.builder().name(secretName).secretString(combinedSecrets).build();
+      createSecret(targetPrefix, combinedSecrets);
+    }
 
-      System.out.printf("Writing %d secrets under %s ... ", secretsList.size(), secretName);
-      if (!dryRun) {
-        secretsClient.createSecret(secretRequest);
-      }
-      System.out.println("Created.");
+    if (deleteSourcePrefix) {
+      deleteSecrets(secretValues);
     }
   }
 
-  public void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
+  @VisibleForTesting
+  public void createSecret(final String targetPrefix, final String secretValue) {
+    final String secretName = randomString(targetPrefix);
+    final CreateSecretRequest secretRequest =
+        CreateSecretRequest.builder().name(secretName).secretString(secretValue).build();
+
+    System.out.printf("Writing %d secrets under %s ... ", secretValue.lines().count(), secretName);
+    if (!dryRun) {
+      secretsClient.createSecret(secretRequest);
+    }
+    System.out.println("Created.");
+  }
+
+  private void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
     System.out.println("Deleting source records: " + secretsList.size());
     secretsList.stream().map(Map.Entry::getKey).forEach(this::deleteSecret);
     System.out.println("Source records deleted.");
@@ -105,6 +115,7 @@ public class AwsSecretsManager implements AutoCloseable {
       return;
     }
     try {
+      System.out.println("Deleting " + secretName);
       final DeleteSecretRequest secretRequest =
           DeleteSecretRequest.builder().secretId(secretName).recoveryWindowInDays(7L).build();
       secretsClient.deleteSecret(secretRequest);
@@ -147,7 +158,7 @@ public class AwsSecretsManager implements AutoCloseable {
    * @return random string
    */
   @VisibleForTesting
-  static String randomString(final String prefix) {
+  public static String randomString(final String prefix) {
     final byte[] buffer = new byte[20];
     random.nextBytes(buffer);
     final String encoded = encoder.encodeToString(buffer);
