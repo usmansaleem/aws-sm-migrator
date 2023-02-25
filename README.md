@@ -1,18 +1,18 @@
 # AWS Secret Manager Migrator
 
 A small ETL program that migrates AWS secrets under a prefix to another prefix. The secret values
-from source prefix are combined into a single line terminated value (upto 200 per secret) and then created under target
+from source prefix are combined into a single line terminated value (up to 200 per secret) and then created under target
 prefix.
 
-For example, if under the secrets manager, the secrets were created as :
+For example, if under the secrets manager, the secrets were created as (where each secret has only one value) :
 ~~~
-source-prefix/<key1>
-source-prefix/<key2>
+source-prefix/<UUID1>
+source-prefix/<UUID2>
 ...
-source-prefix/<key200>
-source-prefix/<key201>
+source-prefix/<UUID200>
+source-prefix/<UUID201>
 ...
-source-prefix/<key400>
+source-prefix/<UUID400>
 ~~~
 
 The 400 values will be transformed under two values under `target-prefix`, for example:
@@ -21,9 +21,9 @@ target-prefix/24R92MgE2DMfBwei1tHfINnVPYk
 target-prefix/LIvkjZy0RuFRfwQyuCVMrV7o9Oc
 ~~~
 
-## Build
+## Docker Build
 ~~~
-./gradlew clean installdist
+docker build -t aws-sm-migrator:latest .
 ~~~
 
 ## Usage
@@ -35,11 +35,12 @@ export AWS_SECRET_ACCESS_KEY=Xddss...
 export AWS_SESSION_TOKEN=IOP33...
 export AWS_REGION=us-east-2
 
-cd ./migrator/build/install/migrator/bin/
+docker run --rm -it -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION aws-sm-migrator:latest --help
 ~~~
 
-Cli options:
+## Cli options:
 ~~~
+docker run --rm -it aws-sm-migrator:latest --help
 Usage: AWSSMMigrator [-dhV] [--delete-source-secrets] [-e=<URI>] [-n=<NUMBER>]
                      -s=source-prefix/ -t=target-prefix/
 Migrates AWS Secret values to line-terminated multi-values.
@@ -60,12 +61,5 @@ Migrates AWS Secret values to line-terminated multi-values.
   -V, --version   Print version information and exit.
 ~~~
 
-Dry run (does not create target secrets)
-~~~
-./migrator -s "signers-aws-integration/" -t "target-prefix/" -d
-~~~
-
-Run
-~~~
-./migrator -s "signers-aws-integration/" -t "target-prefix/"
-~~~
+## Docker Compose
+See `examples` directory for docker-compose example using localstack.
