@@ -31,4 +31,4 @@ COPY --from=app-build /opt/app/migrator/build/distributions/migrator.tar /opt/
 RUN tar -xvf /opt/migrator.tar -C /opt/ && rm /opt/migrator.tar
 WORKDIR /opt/migrator
 
-ENTRYPOINT ["/opt/migrator/bin/migrator"]
+ENTRYPOINT ["/opt/migrator/bin/aws-sm-migrator"]
