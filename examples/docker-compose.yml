@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # see https://docs.localstack.cloud/get-started/#docker-compose
+  # see https://docs.localstack.cloud/localstack/configuration/
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME-localstack_main}"
+    image: localstack/localstack
+    ports:
+      - "4566:4566"            # LocalStack Gateway
+    environment:
+      # LocalStack configuration
+      - DEBUG=${DEBUG-}
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=secretsmanager
+      - EAGER_SERVICE_LOADING=1
+      # - LOCALSTACK_HOSTNAME=localhost
+      # - LOCALSTACK_HOSTNAME_EXTERNAL=localhost
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_SESSION_TOKEN=test
+      # ready hook script configuration
+      - NUM_OF_SECRETS=15
+      - SECRET_PREFIX=test-aws-integration/
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-../migrator/localstack/volume}:/var/lib/localstack"
+      - "../migrator/localstack/init/ready.d:/etc/localstack/init/ready.d" # ready hooks
+      - "/var/run/docker.sock:/var/run/docker.sock"
+  aws-sm-migrator:
+    image: usmans/aws-sm-migrator
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-2
+      - AWS_SESSION_TOKEN=test
+    command: -e "http://localstack:4566" -s "test-aws-integration/" -t "migrated-prefix/" -n 5 --delete-source-secrets
