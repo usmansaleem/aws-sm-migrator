@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Allow following
+!gradle/
+!settings.gradle
+!gradlew
+!migrator/build.gradle
+!migrator/src/
