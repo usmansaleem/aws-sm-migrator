@@ -39,6 +39,9 @@ compileJava {
 application {
     // Define the main class for the application.
     mainClass = 'aws.sm.migrator.AwsSMMigrator'
+    startScripts {
+     applicationName "aws-sm-migrator"
+    }
 }
 
 spotless {

@@ -12,7 +12,7 @@ import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Spec;
 
 @Command(
-    name = "AWSSMMigrator",
+    name = "aws-sm-migrator",
     mixinStandardHelpOptions = true,
     version = "1.0",
     description = "Migrates AWS Secret values to line-terminated multi-values.")

@@ -15,11 +15,7 @@ FROM ubuntu:latest as app-build
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH "${JAVA_HOME}/bin:${PATH}"
 COPY --from=jre-build /javaruntime $JAVA_HOME
-
-COPY gradle/ /opt/app/gradle/
-COPY gradlew settings.gradle /opt/app/
-COPY migrator/ /opt/app/migrator/
-
+COPY . /opt/app/
 WORKDIR /opt/app
 RUN ./gradlew distTar -x test --no-daemon
 
@@ -31,4 +27,4 @@ COPY --from=app-build /opt/app/migrator/build/distributions/migrator.tar /opt/
 RUN tar -xvf /opt/migrator.tar -C /opt/ && rm /opt/migrator.tar
 WORKDIR /opt/migrator
 
-ENTRYPOINT ["/opt/migrator/bin/migrator"]
+ENTRYPOINT ["/opt/migrator/bin/aws-sm-migrator"]
