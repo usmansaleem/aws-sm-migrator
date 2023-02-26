@@ -4,6 +4,7 @@
 # Allow following
 !gradle/
 !settings.gradle
+!gradle.properties
 !gradlew
 !migrator/build.gradle
 !migrator/src/
