@@ -55,10 +55,6 @@ spotless {
     }
 }
 
-dockerCompose.doFirst {
-    println "${project.projectDir}/docker-compose"
-}
-
 dockerCompose {
     executable = "${project.projectDir}/docker-compose"
 }
