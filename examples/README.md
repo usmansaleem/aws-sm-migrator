@@ -8,6 +8,11 @@ docker compose up
 Will initialize localstack secretsmanager service with 15 random secrets. The aws-sm-migrator will transform 15 secrets 
 5 values per secret under `migrated-prefix`
 
+~~~
+docker compose -f docker-compose-delete.yml
+~~~
+Will delete the secrets under source prefix.
+
 The results can be manually tested via `aws-cli` docker image connecting to localstack.
 ~~~
 export AWS_ACCESS_KEY_ID=test

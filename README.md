@@ -58,9 +58,22 @@ Usage without docker:
 ~~~
 
 ~~~
-Usage: aws-sm-migrator [-dhV] [--delete-source-secrets] [-e=<URI>]
-                       [-n=<NUMBER>] -s=source-prefix/ -t=target-prefix/
+Usage: aws-sm-migrator [-hV] COMMAND
 Migrates AWS Secret values to line-terminated multi-values.
+  -h, --help      Show this help message and exit.
+  -V, --version   Print version information and exit.
+Commands:
+  transform  Transform secrets from source-prefix/ to target-prefix/
+  delete     Delete secrets from source-prefix/
+  help       Display help information about the specified command.
+~~~
+
+## Transform Usage:
+~~~
+Usage: aws-sm-migrator transform [-dhV] [--delete-source-secrets] [-e=<URI>]
+                                 [-n=<NUMBER>] -s=source-prefix/
+                                 -t=target-prefix/ [COMMAND]
+Transform secrets from source-prefix/ to target-prefix/
   -d, --dry-run   Dry run only.
       --delete-source-secrets
                   Delete secrets under source prefix after migration.
@@ -75,6 +88,20 @@ Migrates AWS Secret values to line-terminated multi-values.
                   Source Secret Name Prefix which contains the secrets.
   -t, --target-prefix=target-prefix/
                   Target Secret Name Prefix where to create the secrets.
+  -V, --version   Print version information and exit.
+~~~
+
+## Delete Usage:
+~~~
+Usage: aws-sm-migrator delete [-dhV] [-e=<URI>] -s=source-prefix/ [COMMAND]
+Delete secrets from source-prefix/
+  -d, --dry-run   Dry run only.
+  -e, --aws-endpoint-override-uri=<URI>
+                  Override AWS endpoint. Useful for integration testing with
+                    localstack.
+  -h, --help      Show this help message and exit.
+  -s, --source-prefix=source-prefix/
+                  Source Secret Name Prefix which contains the secrets.
   -V, --version   Print version information and exit.
 ~~~
 

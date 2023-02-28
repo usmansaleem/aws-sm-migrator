@@ -31,19 +31,10 @@ public class AwsSecretsManager implements AutoCloseable {
   private static final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
   private final SecretsManagerClient secretsClient;
   private final boolean dryRun;
-  private final int numberOfKeys;
 
-  private final boolean deleteSourcePrefix;
-
-  public AwsSecretsManager(
-      final boolean dryRun,
-      final int numberOfKeys,
-      final URI awsEndpointUrl,
-      final boolean deleteSourcePrefix) {
-    this.secretsClient = getSecretsManagerClient(awsEndpointUrl);
+  public AwsSecretsManager(final boolean dryRun, final URI awsEndpointUrl) {
     this.dryRun = dryRun;
-    this.numberOfKeys = numberOfKeys;
-    this.deleteSourcePrefix = deleteSourcePrefix;
+    this.secretsClient = getSecretsManagerClient(awsEndpointUrl);
   }
 
   public List<Map.Entry<String, String>> getAllSecretsForPrefix(String prefix) {
@@ -73,9 +64,12 @@ public class AwsSecretsManager implements AutoCloseable {
   }
 
   public void transformSecrets(
-      final String targetPrefix, final List<Map.Entry<String, String>> secretValues) {
+      final String targetPrefix,
+      final List<Map.Entry<String, String>> secretValues,
+      final int numberOfKeysPerSecret,
+      final boolean deleteSourcePrefix) {
     List<List<Map.Entry<String, String>>> partitionedLists =
-        Lists.partition(secretValues, numberOfKeys);
+        Lists.partition(secretValues, numberOfKeysPerSecret);
     for (List<Map.Entry<String, String>> secretsList : partitionedLists) {
       String combinedSecrets =
           secretsList.stream()
@@ -104,7 +98,7 @@ public class AwsSecretsManager implements AutoCloseable {
     System.out.println("Created.");
   }
 
-  private void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
+  void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
     System.out.println("Deleting source records: " + secretsList.size());
     secretsList.stream().map(Map.Entry::getKey).forEach(this::deleteSecret);
     System.out.println("Source records deleted.");
