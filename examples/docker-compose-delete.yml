@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  aws-sm-migrator-delete:
+    container_name: 'aws-sm-migrator-delete'
+    build:
+      context: ..
+    environment:
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-2
+      - AWS_SESSION_TOKEN=test
+    command: delete -e "http://host.docker.internal:4566" -s "test-aws-integration/"

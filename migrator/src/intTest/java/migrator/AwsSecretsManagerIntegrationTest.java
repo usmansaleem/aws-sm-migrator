@@ -19,7 +19,7 @@ class AwsSecretsManagerIntegrationTest {
   void canGetAllSecretsForPrefix() {
     List<Map.Entry<String, String>> secretsList;
     try (AwsSecretsManager awsSecretsManager =
-        new AwsSecretsManager(false, 10, URI.create("http://localhost:4566"), false)) {
+        new AwsSecretsManager(false, URI.create("http://localhost:4566"))) {
       secretsList = awsSecretsManager.getAllSecretsForPrefix("test-aws-integration/");
     }
     assertThat(secretsList).hasSize(15);
@@ -29,7 +29,7 @@ class AwsSecretsManagerIntegrationTest {
   void canTransformSecretsToTargetPrefix() {
     List<Map.Entry<String, String>> sourcePrefixSecrets;
     try (AwsSecretsManager awsSecretsManager =
-        new AwsSecretsManager(false, 10, URI.create("http://localhost:4566"), false)) {
+        new AwsSecretsManager(false, URI.create("http://localhost:4566"))) {
       final String sourcePrefix = "test-aws-integration/";
       final String targetPrefix = "target-test-integration/";
 
@@ -37,7 +37,7 @@ class AwsSecretsManagerIntegrationTest {
           awsSecretsManager.getAllSecretsForPrefix(sourcePrefix);
       assertThat(secretsList).hasSize(15);
 
-      awsSecretsManager.transformSecrets(targetPrefix, secretsList);
+      awsSecretsManager.transformSecrets(targetPrefix, secretsList, 10, false);
 
       final List<Map.Entry<String, String>> transformedSecretsList =
           awsSecretsManager.getAllSecretsForPrefix(targetPrefix);
@@ -57,7 +57,7 @@ class AwsSecretsManagerIntegrationTest {
   @Test
   void secretsUnderSourcePrefixAreDeletedAfterTransformation() {
     try (AwsSecretsManager awsSecretsManager =
-        new AwsSecretsManager(false, 10, URI.create("http://localhost:4566"), true)) {
+        new AwsSecretsManager(false, URI.create("http://localhost:4566"))) {
 
       // create random secrets under source prefix
       final String sourcePrefix = "oldprefix/";
@@ -73,7 +73,7 @@ class AwsSecretsManagerIntegrationTest {
       assertThat(secretsList).hasSize(15);
 
       // transform to target prefix
-      awsSecretsManager.transformSecrets(targetPrefix, secretsList);
+      awsSecretsManager.transformSecrets(targetPrefix, secretsList, 10, true);
 
       // assert that secrets has been transformed
       final List<Map.Entry<String, String>> transformedSecretsList =
