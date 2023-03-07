@@ -59,7 +59,7 @@ public class AwsSecretsManager implements AutoCloseable {
               System.out.printf("Fetched %d secrets%n", values.size());
               secretValues.addAll(values);
             });
-
+    System.out.println("Total secrets fetched: " + secretValues.size());
     return secretValues;
   }
 
@@ -68,6 +68,8 @@ public class AwsSecretsManager implements AutoCloseable {
       final List<Map.Entry<String, String>> secretValues,
       final int numberOfKeysPerSecret,
       final boolean deleteSourcePrefix) {
+    System.out.println("Transforming secrets: " + secretValues.size());
+    int count = 0;
     List<List<Map.Entry<String, String>>> partitionedLists =
         Lists.partition(secretValues, numberOfKeysPerSecret);
     for (List<Map.Entry<String, String>> secretsList : partitionedLists) {
@@ -77,9 +79,11 @@ public class AwsSecretsManager implements AutoCloseable {
               .collect(Collectors.joining(System.lineSeparator()));
 
       // write combinedSecrets
+      count++;
       createSecret(targetPrefix, combinedSecrets);
     }
 
+    System.out.println("New Secrets created: " + count);
     if (deleteSourcePrefix) {
       deleteSecrets(secretValues);
     }
