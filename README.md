@@ -43,9 +43,9 @@ Requires Java 17 and docker compose plugin available for running integration tes
 This program uses AWS [Default Credential Provider](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials.html#credentials-chain).
 Following sample uses Environment variables credentials: 
 ~~~
-export AWS_ACCESS_KEY_ID=ASIA...
-export AWS_SECRET_ACCESS_KEY=Xddss...
-export AWS_SESSION_TOKEN=IOP33...
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_SESSION_TOKEN=test
 export AWS_REGION=us-east-2
 ~~~
 Usage via docker:
@@ -72,7 +72,8 @@ Commands:
 ~~~
 Usage: aws-sm-migrator transform [-dhV] [--delete-source-secrets] [-e=<URI>]
                                  [-n=<NUMBER>] -s=source-prefix/
-                                 -t=target-prefix/ [COMMAND]
+                                 -t=target-prefix/ [-r=<region>[,
+                                 <region>...]]... [COMMAND]
 Transform secrets from source-prefix/ to target-prefix/
   -d, --dry-run   Dry run only.
       --delete-source-secrets
@@ -84,6 +85,9 @@ Transform secrets from source-prefix/ to target-prefix/
   -n, --number-of-keys=<NUMBER>
                   Number of keys to store in single secret. Maximum size is
                     200. Defaults to 200.
+  -r, --replicate-regions=<region>[,<region>...]
+                  Replicate secrets to regions. The secrets will be attempted
+                    to be added/removed from these regions.
   -s, --source-prefix=source-prefix/
                   Source Secret Name Prefix which contains the secrets.
   -t, --target-prefix=target-prefix/
@@ -93,13 +97,17 @@ Transform secrets from source-prefix/ to target-prefix/
 
 ## Delete Usage:
 ~~~
-Usage: aws-sm-migrator delete [-dhV] [-e=<URI>] -s=source-prefix/ [COMMAND]
+Usage: aws-sm-migrator delete [-dhV] [-e=<URI>] -s=source-prefix/ [-r=<region>[,
+                              <region>...]]... [COMMAND]
 Delete secrets from source-prefix/
   -d, --dry-run   Dry run only.
   -e, --aws-endpoint-override-uri=<URI>
                   Override AWS endpoint. Useful for integration testing with
                     localstack.
   -h, --help      Show this help message and exit.
+  -r, --replicate-regions=<region>[,<region>...]
+                  Replicate secrets to regions. The secrets will be attempted
+                    to be removed from these regions.
   -s, --source-prefix=source-prefix/
                   Source Secret Name Prefix which contains the secrets.
   -V, --version   Print version information and exit.

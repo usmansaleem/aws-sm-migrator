@@ -1,6 +1,7 @@
 /* Licensed under Apache-2.0 2023. */
 package aws.sm.migrator;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -46,6 +47,14 @@ public class TransformSecrets implements Callable<Integer> {
       description = "Delete secrets under source prefix after migration.")
   private boolean deleteSourcePrefix = false;
 
+  @CommandLine.Option(
+      names = {"-r", "--replicate-regions"},
+      paramLabel = "<region>",
+      description =
+          "Replicate secrets to regions. The secrets will be attempted to be added/removed from these regions.",
+      split = ",")
+  private Collection<String> replicaRegions;
+
   private Integer numberOfKeys;
 
   public TransformSecrets() {}
@@ -75,7 +84,7 @@ public class TransformSecrets implements Callable<Integer> {
       final List<Map.Entry<String, String>> secretsList =
           awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
       awsSecretsManager.transformSecrets(
-          targetSercretNamePrefix, secretsList, numberOfKeys, deleteSourcePrefix);
+          targetSercretNamePrefix, secretsList, numberOfKeys, deleteSourcePrefix, replicaRegions);
     } catch (final Exception e) {
       System.err.println("Error encountered: " + e.getMessage());
       e.printStackTrace();

@@ -1,6 +1,7 @@
 /* Licensed under Apache-2.0 2023. */
 package aws.sm.migrator;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -20,6 +21,14 @@ public class DeleteSecrets implements Callable<Integer> {
   private String sourceSecretNamePrefix;
 
   @CommandLine.Option(
+      names = {"-r", "--replicate-regions"},
+      paramLabel = "<region>",
+      description =
+          "Replicate secrets to regions. The secrets will be attempted to be removed from these regions.",
+      split = ",")
+  private Collection<String> replicaRegions;
+
+  @CommandLine.Option(
       names = {"-d", "--dry-run"},
       description = "Dry run only.")
   private boolean dryRun = false;
@@ -36,7 +45,7 @@ public class DeleteSecrets implements Callable<Integer> {
         new AwsSecretsManager(dryRun, awsEndpointUrl)) {
       final List<Map.Entry<String, String>> secretsList =
           awsSecretsManager.getAllSecretsForPrefix(sourceSecretNamePrefix);
-      awsSecretsManager.deleteSecrets(secretsList);
+      awsSecretsManager.deleteSecrets(secretsList, replicaRegions);
     } catch (final Exception e) {
       System.err.println("Error encountered: " + e.getMessage());
       e.printStackTrace();
