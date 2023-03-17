@@ -141,7 +141,8 @@ public class AwsSecretsManager implements AutoCloseable {
       System.out.println("Deleting " + secretName);
       // remove regions from replication
       if (replicaRegions != null && !replicaRegions.isEmpty()) {
-        System.out.printf("Deleting from replication regions %s %n", String.join(", ", replicaRegions));
+        System.out.printf(
+            "Deleting from replication regions %s %n", String.join(", ", replicaRegions));
         final RemoveRegionsFromReplicationRequest request =
             RemoveRegionsFromReplicationRequest.builder()
                 .secretId(secretName)
