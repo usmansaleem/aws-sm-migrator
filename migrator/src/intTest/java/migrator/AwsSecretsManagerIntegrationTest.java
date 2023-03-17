@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import aws.sm.migrator.AwsSecretsManager;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -37,7 +38,8 @@ class AwsSecretsManagerIntegrationTest {
           awsSecretsManager.getAllSecretsForPrefix(sourcePrefix);
       assertThat(secretsList).hasSize(15);
 
-      awsSecretsManager.transformSecrets(targetPrefix, secretsList, 10, false);
+      awsSecretsManager.transformSecrets(
+          targetPrefix, secretsList, 10, false, Collections.emptyList());
 
       final List<Map.Entry<String, String>> transformedSecretsList =
           awsSecretsManager.getAllSecretsForPrefix(targetPrefix);
@@ -64,7 +66,9 @@ class AwsSecretsManagerIntegrationTest {
       final String targetPrefix = "newprefix/";
       for (int i = 0; i < 15; i++) {
         awsSecretsManager.createSecret(
-            sourcePrefix, String.format("%06x", random.nextInt(0x1_000_000)));
+            sourcePrefix,
+            String.format("%06x", random.nextInt(0x1_000_000)),
+            Collections.emptyList());
       }
 
       // assert that they are created successfully
@@ -73,7 +77,8 @@ class AwsSecretsManagerIntegrationTest {
       assertThat(secretsList).hasSize(15);
 
       // transform to target prefix
-      awsSecretsManager.transformSecrets(targetPrefix, secretsList, 10, true);
+      awsSecretsManager.transformSecrets(
+          targetPrefix, secretsList, 10, true, Collections.emptyList());
 
       // assert that secrets has been transformed
       final List<Map.Entry<String, String>> transformedSecretsList =

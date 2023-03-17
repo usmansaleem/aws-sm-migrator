@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,6 +23,9 @@ import software.amazon.awssdk.services.secretsmanager.model.FilterNameStringType
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
+import software.amazon.awssdk.services.secretsmanager.model.RemoveRegionsFromReplicationRequest;
+import software.amazon.awssdk.services.secretsmanager.model.ReplicaRegionType;
+import software.amazon.awssdk.services.secretsmanager.model.ReplicateSecretToRegionsRequest;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 import software.amazon.awssdk.services.secretsmanager.paginators.ListSecretsIterable;
@@ -67,7 +71,8 @@ public class AwsSecretsManager implements AutoCloseable {
       final String targetPrefix,
       final List<Map.Entry<String, String>> secretValues,
       final int numberOfKeysPerSecret,
-      final boolean deleteSourcePrefix) {
+      final boolean deleteSourcePrefix,
+      final Collection<String> replicaRegions) {
     System.out.println("Transforming secrets: " + secretValues.size());
     int count = 0;
     List<List<Map.Entry<String, String>>> partitionedLists =
@@ -80,45 +85,77 @@ public class AwsSecretsManager implements AutoCloseable {
 
       // write combinedSecrets
       count++;
-      createSecret(targetPrefix, combinedSecrets);
+      createSecret(targetPrefix, combinedSecrets, replicaRegions);
     }
 
     System.out.println("New Secrets created: " + count);
     if (deleteSourcePrefix) {
-      deleteSecrets(secretValues);
+      deleteSecrets(secretValues, replicaRegions);
     }
   }
 
   @VisibleForTesting
-  public void createSecret(final String targetPrefix, final String secretValue) {
+  public void createSecret(
+      final String targetPrefix, final String secretValue, final Collection<String> regions) {
     final String secretName = randomString(targetPrefix);
     final CreateSecretRequest secretRequest =
         CreateSecretRequest.builder().name(secretName).secretString(secretValue).build();
 
-    System.out.printf("Writing %d secrets under %s ... ", secretValue.lines().count(), secretName);
+    System.out.printf(
+        "Writing %d secrets under %s ... %n", secretValue.lines().count(), secretName);
     if (!dryRun) {
       secretsClient.createSecret(secretRequest);
+
+      // replicate to other regions
+      if (regions != null && !regions.isEmpty()) {
+        System.out.printf("Replicating %s to regions: %s%n", secretName, String.join(",", regions));
+        final Collection<ReplicaRegionType> replicaRegionTypes =
+            regions.stream()
+                .map(region -> ReplicaRegionType.builder().region(region).build())
+                .toList();
+        final ReplicateSecretToRegionsRequest replicateRequest =
+            ReplicateSecretToRegionsRequest.builder()
+                .secretId(secretName)
+                .addReplicaRegions(replicaRegionTypes)
+                .build();
+        secretsClient.replicateSecretToRegions(replicateRequest);
+      }
     }
     System.out.println("Created.");
   }
 
-  void deleteSecrets(final List<Map.Entry<String, String>> secretsList) {
+  void deleteSecrets(
+      final List<Map.Entry<String, String>> secretsList, final Collection<String> replicaRegions) {
     System.out.println("Deleting source records: " + secretsList.size());
-    secretsList.stream().map(Map.Entry::getKey).forEach(this::deleteSecret);
+    secretsList.stream()
+        .map(Map.Entry::getKey)
+        .forEach(secretName -> deleteSecret(secretName, replicaRegions));
     System.out.println("Source records deleted.");
   }
 
-  private void deleteSecret(final String secretName) {
+  private void deleteSecret(final String secretName, final Collection<String> replicaRegions) {
     if (dryRun) {
       return;
     }
     try {
       System.out.println("Deleting " + secretName);
+      // remove regions from replication
+      if (replicaRegions != null && !replicaRegions.isEmpty()) {
+        System.out.printf(
+            "Deleting from replication regions %s %n", String.join(", ", replicaRegions));
+        final RemoveRegionsFromReplicationRequest request =
+            RemoveRegionsFromReplicationRequest.builder()
+                .secretId(secretName)
+                .removeReplicaRegions(replicaRegions)
+                .build();
+        secretsClient.removeRegionsFromReplication(request);
+      }
+
       final DeleteSecretRequest secretRequest =
           DeleteSecretRequest.builder().secretId(secretName).recoveryWindowInDays(7L).build();
       secretsClient.deleteSecret(secretRequest);
     } catch (SecretsManagerException e) {
-      System.err.println(e.awsErrorDetails().errorMessage());
+      System.err.println("ERROR: " + e.awsErrorDetails().errorMessage());
     }
   }
 
